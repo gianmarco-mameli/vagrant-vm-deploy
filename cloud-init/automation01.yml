@@ -1,0 +1,19 @@
+#cloud-config
+
+network:
+  version: 1
+  config:
+    - type: physical
+      name: enp0s6
+      subnets:
+        - type: static
+          address: 192.168.10.102/24
+          gateway: 192.168.10.254
+    # - type: route
+    #   destination: 10.100.0.0/24
+    #   gateway: 10.10.0.249
+    - type: nameserver
+      address:
+        - 192.168.1.1
+      # search:
+      #   - testing.mydom
