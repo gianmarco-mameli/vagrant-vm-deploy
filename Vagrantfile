@@ -7,12 +7,11 @@ Vagrant.require_version ">= 2.3.7"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
-  MACHINE = ["automation","gitlab","gitrun","harbor"]
-  CPUS =  [1,2,6,2]
-  MEMORY = [1024,6144,8192,2048]
-  IP = [100,101,102,103]
-  # MAC = [AA:BB:CC:DD:]
-  N = 3
+  MACHINE = ["automation","gitlab","gitrun","harbor","repo"]
+  CPUS =  [1,2,6,2,1]
+  MEMORY = [1024,6144,8192,2048,1024]
+  IP = [100,101,102,103,104]
+  N = 4
 
   config.vm.box = "arm64-bookwormext4-12-1-0"
   # config.vm.guest = "linux"
