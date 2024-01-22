@@ -3,17 +3,18 @@
 
 VAGRANTFILE_API_VERSION = "2"
 
-Vagrant.require_version ">= 2.3.7"
+Vagrant.require_version ">= 2.4.0"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   MACHINE = ["automation","gitlab","gitrun","harbor","repo"]
+  ROSETTA =["off","off","off","on","off"]
   CPUS =  [1,2,6,2,1]
   MEMORY = [1024,6144,8192,2048,1024]
   IP = [100,101,102,103,104]
   N = 4
 
-  config.vm.box = "arm64-bookwormext4-12-1-0"
+  config.vm.box = "bookworm-arm64-ext4-12-4-0"
   # config.vm.guest = "linux"
   config.ssh.username = "gnammyx"
   # config.ssh.password = ""
@@ -27,10 +28,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.define MACHINE[i] do |server|
 
     server.vm.hostname = MACHINE[i]
-    # server.ssh.host = "192.168.10.#{IP[i]}"
+    server.ssh.host = "192.168.10.#{IP[i]}"
 
-    # server.vm.network "private_network", type: "dhcp"
-    server.vm.network "public_network", mac: "AA:BB:CC:DD:EE:0#{i}", use_dhcp_assigned_default_route: true
+    # server.vm.network "public_network", mac: "AA:BB:CC:DD:EE:0#{i}", type: "dhcp"
+    # server.vm.network "public_network", mac: "AA:BB:CC:DD:EE:0#{i}", use_dhcp_assigned_default_route: true
     #, hostname: true, ip: "192.168.10.#{IP[i]}", gateway: "192.168.10.254"
                                         # use_dhcp_assigned_default_route: true
 
@@ -55,25 +56,39 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       prl.customize "post-import", ["set", :id, "--keyboard-optimize", "off"]
       prl.customize "post-import", ["set", :id, "--sync-host-printers", "off"]
       prl.customize "post-import", ["set", :id, "--autostart", "start-host"]
-      prl.customize "pre-boot", ["set",
+      prl.customize "post-import", ["set", :id, "--autostop", "suspend"]
+      prl.customize "post-import", ["set", :id, "--autostart-delay", "120"]
+      prl.customize "post-import", ["set", :id, "--rosetta-linux", "#{ROSETTA[i]}"]
+      prl.customize "post-import", ["set",
                                   :id,
                                   "--device-add" , "hdd",
                                   "--image", "/Users/gnammyx/Parallels/volumes/#{MACHINE[i]}.hdd"]
-      # prl.customize "pre-boot", ["set", :id,
-      #                             "--device-add", "net",
-      #                             "--type", "bridged",
-      #                             "--iface", "default",
-      #                             "--mac", "AA:BB:CC:DD:EE:0#{i}",
-      #                             "--ipadd", "192.168.10.#{IP[i]}",
-      #                             "--dhcp", "no",
-      #                             "--dhcp6", "no",
-      #                             "--gw", "192.168.10.254",
-      #                             "--nameserver", "192.168.1.1",
-      #                             "--configure", "yes"]
+      prl.customize "pre-boot", ["set", :id,
+                                  "--device-add", "net",
+                                  "--type", "bridged",
+                                  "--iface", "default",
+                                  "--mac", "AA:BB:CC:DD:EE:0#{i}",
+                                  "--ipadd", "192.168.10.#{IP[i]}",
+                                  "--dhcp", "no",
+                                  "--dhcp6", "no",
+                                  "--gw", "192.168.10.254",
+                                  "--nameserver", "192.168.1.1",
+                                  "--configure", "yes"]
     end
     # server.vm.provision :host_shell do |host_shell|
     #   host_shell.inline = "prlctl set #{MACHINE[i]} --device-set net0 --disconnect"
     # end
+
+    server.vm.provision "ansible" do |ansible|
+      ansible.compatibility_mode = "2.0"
+      ansible.playbook = "/Users/gnammyx/git/ansible/20_hosts_resolv.yml"
+      ansible.inventory_path = "/Users/gnammyx/git/ansible/inventory"
+      ansible.version = "latest"
+      # ansible.force_remote_user = true
+      # ansible.become = true
+      # ansible.become_user = "packer"
+      # ansible.verbose = "-vv"
+    end
 
     server.vm.provision "ansible" do |ansible|
       ansible.compatibility_mode = "2.0"
