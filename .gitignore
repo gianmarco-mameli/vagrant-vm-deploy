@@ -1,2 +1,3 @@
 .trunk
 .vagrant
+secrets.rb
