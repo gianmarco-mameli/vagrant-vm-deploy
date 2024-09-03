@@ -1,1 +1,1 @@
-vagrant plugin install vagrant-parallels
+Vagrant VM Deploy on Parallels
