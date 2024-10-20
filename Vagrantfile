@@ -41,7 +41,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       prl.customize "post-import", ["set", :id, "--autostart", "start-host"]
       prl.customize "post-import", ["set", :id, "--autostop", "suspend"]
       prl.customize "post-import", ["set", :id, "--autostart-delay", "30"]
-      prl.customize "post-import", ["set", :id, "--time-sync", "off"]
+      prl.customize "post-import", ["set", :id, "--time-sync", "on"]
       prl.customize "post-import", ["set", :id, "--rosetta-linux", "#{vm[:rosetta] || rosetta_default}"]
       prl.customize "post-import", ["set", :id, "--isolate-vm", "#{vm[:isolate] || isolate_default}"]
       prl.customize "post-import", ["set",
