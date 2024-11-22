@@ -14,6 +14,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   rosetta_default = "off"
   isolate_default = "on"
   bridge_default = "en0"
+  autostart_default = "off"
+  disk_size_default = 80000
 
   config.vm.box = Secrets.box
   config.ssh.username = Secrets.username
@@ -38,16 +40,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       prl.customize "post-import", ["set", :id, "--smart-mouse-optimize", "off"]
       prl.customize "post-import", ["set", :id, "--keyboard-optimize", "off"]
       prl.customize "post-import", ["set", :id, "--sync-host-printers", "off"]
-      prl.customize "post-import", ["set", :id, "--autostart", "start-host"]
-      prl.customize "post-import", ["set", :id, "--autostop", "suspend"]
+      prl.customize "post-import", ["set", :id, "--autostart", "#{vm[:autostart] || autostart_default}"]
+      prl.customize "post-import", ["set", :id, "--autostop", "shutdown"]
       prl.customize "post-import", ["set", :id, "--autostart-delay", "30"]
-      prl.customize "post-import", ["set", :id, "--time-sync", "on"]
+      prl.customize "post-import", ["set", :id, "--time-sync", "off"]
       prl.customize "post-import", ["set", :id, "--rosetta-linux", "#{vm[:rosetta] || rosetta_default}"]
       prl.customize "post-import", ["set", :id, "--isolate-vm", "#{vm[:isolate] || isolate_default}"]
-      prl.customize "post-import", ["set",
-                                  :id,
-                                  "--device-add" , "hdd",
-                                  "--image", "#{Secrets.additional_disk_path}/#{vm[:name]}.hdd"]
       prl.customize "pre-boot", ["set", :id, "--device-del", "sound0"]
     end
 
@@ -65,10 +63,29 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
                                                       --mac #{Secrets.base_mac_address}:#{vm[:ip].chars.last(2).join}"}
     end
 
+    if vm[:disk]
+      server.trigger.after :up do |trigger|
+        trigger.ignore = :provision
+        trigger.info = "Additional disk"
+        trigger.run =
+          {inline: "prlctl set #{vm[:name]} \
+                    --device-add hdd \
+                    --image #{Secrets.additional_disk_path}/#{vm[:name]}.hdd \
+                    --iface nvme \
+                    --size #{vm[:disk_size] || disk_size_default}"}
+      end
+    end
+
     server.trigger.after :up do |trigger|
       trigger.ignore = :provision
       trigger.info = "Start VM"
       trigger.run = {inline: "prlctl start #{vm[:name]}"}
+    end
+
+    server.trigger.after :up do |trigger|
+      # trigger.ignore = :provision
+      trigger.info = "Take snapshot"
+      trigger.run = {inline: "prlctl snapshot #{vm[:name]} -n 'Clean VM'"}
     end
   end
   end
