@@ -71,7 +71,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
           {inline: "prlctl set #{vm[:name]} \
                     --device-add hdd \
                     --image #{Secrets.additional_disk_path}/#{vm[:name]}.hdd \
-                    --iface nvme \
                     --size #{vm[:disk_size] || disk_size_default}"}
       end
     end
