@@ -15,7 +15,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   isolate_default = "on"
   bridge_default = "en0"
   autostart_default = "off"
-  disk_size_default = 80000
+  disk_size_default = 131072
 
   config.vm.box = Secrets.box
   config.ssh.username = Secrets.username
