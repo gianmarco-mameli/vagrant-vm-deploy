@@ -18,11 +18,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   disk_size_default = 131072
 
   config.vm.box = Secrets.box
+  config.ssh.config  = "~/.ssh/config"
   config.ssh.username = Secrets.username
   config.ssh.insert_key = false
-  config.ssh.forward_agent = true
+  # config.ssh.forward_agent = true
   config.ssh.keys_only = false
-  config.ssh.private_key_path = Secrets.private_key_path
+  # config.ssh.private_key_path = Secrets.private_key_path
+  config.ssh.verify_host_key = :accept_new
 
   vms.each do |vm|
   config.vm.define vm[:name] do |server|
@@ -37,16 +39,16 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       prl.update_guest_tools = false
       prl.cpus = vm[:cpus] || cpus_default
       prl.memory = vm[:ram] || ram_default
-      prl.customize "post-import", ["set", :id, "--smart-mouse-optimize", "off"]
-      prl.customize "post-import", ["set", :id, "--keyboard-optimize", "off"]
-      prl.customize "post-import", ["set", :id, "--sync-host-printers", "off"]
+      # prl.customize "post-import", ["set", :id, "--smart-mouse-optimize", "off"]
+      # prl.customize "post-import", ["set", :id, "--keyboard-optimize", "off"]
+      # prl.customize "post-import", ["set", :id, "--sync-host-printers", "off"]
       prl.customize "post-import", ["set", :id, "--autostart", "#{vm[:autostart] || autostart_default}"]
       prl.customize "post-import", ["set", :id, "--autostop", "shutdown"]
       prl.customize "post-import", ["set", :id, "--autostart-delay", "30"]
       prl.customize "post-import", ["set", :id, "--time-sync", "off"]
       prl.customize "post-import", ["set", :id, "--rosetta-linux", "#{vm[:rosetta] || rosetta_default}"]
       prl.customize "post-import", ["set", :id, "--isolate-vm", "#{vm[:isolate] || isolate_default}"]
-      prl.customize "pre-boot", ["set", :id, "--device-del", "sound0"]
+      # prl.customize "pre-boot", ["set", :id, "--device-del", "sound0"]
     end
 
     server.trigger.after :up do |trigger|
@@ -81,11 +83,16 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       trigger.run = {inline: "prlctl start #{vm[:name]}"}
     end
 
-    server.trigger.after :up do |trigger|
-      # trigger.ignore = :provision
-      trigger.info = "Take snapshot"
-      trigger.run = {inline: "prlctl snapshot #{vm[:name]} -n 'Clean VM'"}
+    server.trigger.after :destroy do |trigger|
+      trigger.info = "Delete additional disk"
+      trigger.run = {inline: "rm -rf #{Secrets.additional_disk_path}/#{vm[:name]}.hdd"}
     end
+
+    # server.trigger.after :up do |trigger|
+    #   trigger.ignore = :provision
+    #   trigger.info = "Take snapshot"
+    #   trigger.run = {inline: "prlctl snapshot #{vm[:name]} -n 'Clean VM'"}
+    # end
   end
   end
 end
