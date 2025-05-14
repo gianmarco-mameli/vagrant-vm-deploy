@@ -1,0 +1,68 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+VAGRANTFILE_API_VERSION = "2"
+Vagrant.require_version ">= 2.4.1"
+
+require_relative '../secrets.rb'
+include Secrets
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  vms = Secrets.vms
+  cpus_default = 1
+  ram_default = 1024
+  disk_size_default = "100GB"
+
+  config.vm.box = Secrets.box
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+  config.ssh.config  = "~/.ssh/config"
+  config.ssh.username = Secrets.username
+  config.ssh.insert_key = false
+  config.ssh.keys_only = false
+  config.ssh.port = 22
+  # config.ssh.private_key_path = Secrets.private_key_path
+  config.ssh.verify_host_key = :accept_new
+
+  vms.each do |vm|
+  config.vm.define vm[:name] do |server|
+    server.vm.hostname = vm[:name]
+    server.ssh.host = "#{Secrets.base_ip_address}.#{vm[:ip]}"
+    server.vm.provider "vmware_desktop" do |v|
+      v.linked_clone = false
+      v.verify_vmnet = false
+      v.base_mac = "#{Secrets.base_mac_address}:#{vm[:ip].chars.last(2).join}"
+      v.vmx["ethernet0.connectionType"] = ""
+      v.vmx["ethernet0.linkStatePropagation.enable "] = "TRUE"
+      v.vmx["nvme0.present"] = vm[:disk] ? "TRUE" : "FALSE"
+      v.vmx["nvme0:0.fileName"] = vm[:disk] ? "#{Secrets.additional_disk_path}/#{vm[:name]}.vmdk" : ""
+      v.vmx["nvme0:0.present"] = vm[:disk] ? "TRUE" : "FALSE"
+      v.vmx["usb.present"] = vm[:usb] ? "TRUE" : "FALSE"
+      v.gui = true
+      v.vmx["memsize"] = vm[:ram] || ram_default
+      v.vmx["numvcpus"] = vm[:cpus] || cpus_default
+      v.vmx["cpuid.corespersocket"] = 1
+      v.vmx["remotedisplay.vnc.enabled"] = "TRUE"
+      v.vmx["remotedisplay.vnc.port"] = "59#{vm[:ip].chars.last(2).join}"
+      v.vmx["remotedisplay.vnc.password"] = Secrets.vnc_password
+
+    end
+
+    if vm[:disk]
+      server.trigger.before :up do |trigger|
+        trigger.ignore = :provision
+        trigger.info = "Create Additional disk"
+        trigger.run = {inline: "vmcli Disk Create \
+                                -f #{Secrets.additional_disk_path}/#{vm[:name]}.vmdk \
+                                -a lsilogic \
+                                -s #{vm[:disk_size] || disk_size_default} \
+                                -t 0"}
+      end
+    end
+
+
+    server.trigger.after :destroy do |trigger|
+      trigger.info = "Delete additional disk"
+      trigger.run = {inline: "rm -rf #{Secrets.additional_disk_path}/#{vm[:name]}.vmdk"}
+    end
+  end
+  end
+end
