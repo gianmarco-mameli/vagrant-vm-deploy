@@ -36,6 +36,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       v.vmx["nvme0:0.fileName"] = vm[:disk] ? "#{Secrets.additional_disk_path}/#{vm[:name]}.vmdk" : ""
       v.vmx["nvme0:0.present"] = vm[:disk] ? "TRUE" : "FALSE"
       v.vmx["usb.present"] = vm[:usb] ? "TRUE" : "FALSE"
+      v.vmx["usb.generic.pluginAction"] = "host"
       v.gui = true
       v.vmx["memsize"] = vm[:ram] || ram_default
       v.vmx["numvcpus"] = vm[:cpus] || cpus_default
