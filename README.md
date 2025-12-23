@@ -1,3 +1,3 @@
 Vagrant VM Deploy on Parallels and VMware Fusion
 
-README Coming soon!
+for further documentation check the [docs folder](./docs/)
